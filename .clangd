@@ -1,18 +1,27 @@
-CompileFlags:                    
+CompileFlags:
   Add:
-    [
-      # -mlong-calls,
-      -DSSIZE_MAX,
-      -DLWIP_NO_UNISTD_H=1,
-      -Dssize_t=long,
-      -D_SSIZE_T_DECLARED,
-    ]
+    - "-I${workspaceFolder}/.pio/libdeps/*/ESP32/src"
+    - "-I${workspaceFolder}/.pio/libdeps/*/ESP32_Arduino/src"
+    - "-I${workspaceFolder}/.pio/libdeps/*"
+    - "-I${workspaceFolder}/.pio/build/*/FrameworkArduino"
+    - "-I${workspaceFolder}/.pio/packages/framework-arduinoespressif32/tools/sdk/esp32/include"
+    - "-I${workspaceFolder}/.pio/packages/framework-arduinoespressif32/cores/esp32"
+    - "-I${workspaceFolder}/.pio/packages/framework-arduinoespressif32/variants/esp32"
+    - "-DESP32"
+    - "-DARDUINO_ESP32_DEV"
+    - "-DARDUINO_ARCH_ESP32"
+    - "--target=x86_64-apple-darwin"
   Remove:
-    [
-      -fno-tree-switch-conversion,
-      -mtext-section-literals,
-      -mlongcalls,
-      -fstrict-volatile-bitfields,
-      -free,
-      -fipa-pta,
-    ]
+    - "-fno-*"
+    - "-fstrict-*"
+    - "-m*"
+    - "-Wa,*"
+    - "-Wl,*"
+    - "-save-temps*"
+    - "--param=*"
+    - "-std=gnu*"  # Remove GNU extensions and let clangd use standard C++
+    - "-std=c++*"  # Remove this if you want to keep C++ standard specified
+
+Index:
+  Background: Build
+  StandardLibrary: Yes
