@@ -1,11 +1,13 @@
 #include "DShotRMT.h"
+#include "esp32-hal-gpio.h"
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
 #include <Arduino.h>
 #include <Wire.h>
+#include <cstdint>
 
 /// DSHOT
-#define POT_PIN 23      // potentiometer pin
+#define POT_PIN 4      // potentiometer pin
 #define ESC_PIN 16     // ESC control pin
 #define FWD_REV_PIN 17 // HIGH is forward, LOW is reverse
 #define MOTOR_POLES 14 // seems to be correct for my 2200KV motor
@@ -53,6 +55,7 @@ void setup() {
   Serial.begin(115200);
   motor01.begin(DSHOT_MODE, ENABLE_BIDIRECTION, 14);
   mpuSetup(&mpu);
+  pinMode(POT_PIN, INPUT);
 }
 
 void loop() {
@@ -92,7 +95,10 @@ void loop() {
   // updateDShot(output);
   // updateDShot(1);
   // Serial.println("updating dshot to motor");
-  motor01.send_dshot_value(INITIAL_THROTTLE);
+ 
+  int throttle = analogRead(POT_PIN);
+  Serial.printf("throttle: %d\n", throttle);
+  motor01.send_dshot_value(throttle);
 
   if (pacer++ > 200) {
     pacer = 0;

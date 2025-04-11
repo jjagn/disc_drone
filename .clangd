@@ -10,7 +10,7 @@ CompileFlags:
     - "-DESP32"
     - "-DARDUINO_ESP32_DEV"
     - "-DARDUINO_ARCH_ESP32"
-    - "--target=x86_64-apple-darwin"
+    - "--target=xtensa-esp32-elf"
   Remove:
     - "-fno-*"
     - "-fstrict-*"
