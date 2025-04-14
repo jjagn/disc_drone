@@ -1,151 +1,62 @@
-#include "DShotRMT.h"
-#include "esp32-hal-gpio.h"
-#include <Adafruit_MPU6050.h>
-#include <Adafruit_Sensor.h>
+#include "esp32-hal-adc.h"
 #include <Arduino.h>
-#include <Wire.h>
-#include <cstdint>
 
-/// DSHOT
-#define POT_PIN 4      // potentiometer pin
-#define ESC_PIN 16     // ESC control pin
-#define FWD_REV_PIN 17 // HIGH is forward, LOW is reverse
-#define MOTOR_POLES 14 // seems to be correct for my 2200KV motor
-#define TMR_CHAN 0     // HW timer channel
-#define BOARD_MHZ 80   // used as prescale in timerBegin call
-#define COUNT_UP true  // HW timer count direction
-#define TX_NO_RX true  // only send data to ESC for now
-#define TELEM_ON true  // but we'll be commanding off for now
+// TEST
+#include <hal/gpio_hal.h>
 
-// PID
-#define K_P 0
-#define K_I 0
-#define K_D 0.2
+#include <DShotRMT.h>
 
-void mpuSetup(Adafruit_MPU6050 *mpu);
+#define THROTTLE_MIN 47
+#define THROTTLE_MAX 2047
 
-// DSHOT
-const auto DSHOT_MODE = DSHOT300;
+#define ESC_ARM_TIME 1000
+
+// Define the GPIO pin connected to the motor and the DShot protocol used
+const auto MOTOR01_PIN = 16;
+const auto MOTOR02_PIN = 17;
+const auto DSHOT_MODE = DSHOT150;
 
 // Define the failsafe and initial throttle values
-const auto FAILSAFE_THROTTLE = 999;
+const auto FAILSAFE_THROTTLE = 0;
 const auto INITIAL_THROTTLE = 48;
 
-// Initialize a DShotRMT object for the motor
-DShotRMT motor01(ESC_PIN);
+#define POT_PIN 4
 
-// nav etc.
-#define GYRO_X_OFFSET -0.04
-#define GYRO_Y_OFFSET 0.05
-#define GYRO_Z_OFFSET 1.11 / 200
-
-Adafruit_MPU6050 mpu;
-
-float pitch = 0;
-float roll = 0;
-float heading = 0;
-float gyroX;
-float gyroY;
-float gyroZ;
-float delta_t, currentTime, previousTime;
-float gyroError = 0;
-int pot = 0;
+DShotRMT ESC_01(MOTOR01_PIN); // MOTOR01_PIN
+DShotRMT ESC_02(MOTOR02_PIN); // MOTOR02_PIN
 
 void setup() {
-  Serial.begin(115200);
-  motor01.begin(DSHOT_MODE, ENABLE_BIDIRECTION, 14);
-  mpuSetup(&mpu);
-  pinMode(POT_PIN, INPUT);
+	Serial.begin(115200);
+	ESC_01.begin(DSHOT_MODE, NO_BIDIRECTION, 14);
+	ESC_02.begin(DSHOT_MODE, NO_BIDIRECTION, 14);
+	pinMode(POT_PIN, INPUT);
+	Serial.println("starting");
+    while (analogRead(POT_PIN) >= 100) {
+        Serial.println("Turn down throttle!");
+    }
+    // arm
+    unsigned long time_now = millis();
+    while (millis() - time_now >= ESC_ARM_TIME) {
+        ESC_01.send_dshot_value(0);
+        ESC_02.send_dshot_value(0);
+    }
 }
 
 void loop() {
-  static int pacer = 0;
-  sensors_event_t a, g, temp;
-  mpu.getEvent(&a, &g, &temp);
+	uint16_t rpm_set_now = 400;
+	uint16_t throttle_command = 400;
+	{
+		uint16_t tpot_value = analogRead(POT_PIN);
+		uint16_t pot_value = abs(tpot_value - pot_value) > 50 ? tpot_value : pot_value;
 
-  gyroX = g.gyro.x + GYRO_X_OFFSET; // 16.4 LSB/deg/s
-  gyroY = g.gyro.y + GYRO_Y_OFFSET; // 16.4 LSB/deg/s
-  gyroZ = g.gyro.z + GYRO_Z_OFFSET; // 16.4 LSB/deg/s
-  currentTime = millis();
-  delta_t = (currentTime - previousTime) / 1000; // /1000 to get seconds
-  previousTime = currentTime;
-  roll += gyroY * delta_t;
-  pitch += gyroX * delta_t;
-  heading += gyroZ * delta_t;
+		throttle_command = map(pot_value, 0, 4095, THROTTLE_MIN, THROTTLE_MAX);
+		if (throttle_command > THROTTLE_MAX)
+			throttle_command = THROTTLE_MAX;
+		if (throttle_command < THROTTLE_MIN)
+			throttle_command = THROTTLE_MIN;
+		Serial.println(throttle_command);
+        ESC_01.send_dshot_value(throttle_command);
+        ESC_02.send_dshot_value(throttle_command);
 
-  // PID
-  static float setpoint = 0;
-  static float integrator = 0;
-  static float prevError = 0;
-  float output = 0;
-  float error = setpoint - roll;
-
-  // P
-  output = error * K_P;
-
-  // I
-  integrator += error * delta_t;
-  output += integrator * K_I;
-
-  // D
-  float derivative = (error - prevError) / delta_t;
-  prevError = error;
-  output += derivative * K_D;
-
-  // updateDShot(output);
-  // updateDShot(1);
-  // Serial.println("updating dshot to motor");
- 
-  int throttle = analogRead(POT_PIN);
-  Serial.printf("throttle: %d\n", throttle);
-  motor01.send_dshot_value(throttle);
-
-  if (pacer++ > 200) {
-    pacer = 0;
-    Serial.print("Heading: ");
-    Serial.print(heading * RAD_TO_DEG);
-    Serial.print(",");
-    Serial.print("Pitch: ");
-    Serial.print(pitch * RAD_TO_DEG);
-    Serial.print(",");
-    Serial.print("Roll: ");
-    Serial.print(roll * RAD_TO_DEG);
-    Serial.print(",");
-    Serial.print("Gyro X: ");
-    Serial.print(gyroX);
-    Serial.print(",");
-    Serial.print("Gyro Y: ");
-    Serial.print(gyroY);
-    Serial.print(",");
-
-    Serial.print("Error: ");
-    Serial.print(error);
-    Serial.print(",");
-    Serial.print("Integrator: ");
-    Serial.print(integrator);
-    Serial.print(",");
-    Serial.print("Derivative: ");
-    Serial.print(derivative);
-    Serial.print(",");
-    Serial.print("Output: ");
-    Serial.print(output);
-    Serial.println("");
-
-    // send throttle to esc
-  }
-}
-
-void mpuSetup(Adafruit_MPU6050 *mpu) {
-  if (!mpu->begin()) {
-    Serial.println("Failed to find MPU6050 chip");
-    while (1) {
-      delay(10);
-    }
-  }
-
-  mpu->setAccelerometerRange(MPU6050_RANGE_8_G);
-  mpu->setGyroRange(MPU6050_RANGE_2000_DEG);
-  mpu->setFilterBandwidth(MPU6050_BAND_260_HZ);
-  Serial.println("");
-  delay(100);
+	}
 }

@@ -1,0 +1,57 @@
+---
+Language: Cpp
+# Use tabs instead of spaces
+UseTab: Always
+# Set tab width to display as 4 spaces
+TabWidth: 4
+# Indent width (logical spacing for indentation)
+IndentWidth: 4
+# Indent case labels
+IndentCaseLabels: true
+# Align consecutive assignments
+AlignConsecutiveAssignments: false
+# Align consecutive declarations
+AlignConsecutiveDeclarations: false
+# Alignment of escaped newlines
+AlignEscapedNewlines: Left
+# Align trailing comments
+AlignTrailingComments: true
+# Allow breaking before braces
+AllowAllParametersOfDeclarationOnNextLine: true
+# Allow short blocks on a single line
+AllowShortBlocksOnASingleLine: false
+# Allow short case labels on a single line
+AllowShortCaseLabelsOnASingleLine: false
+# Allow short functions on a single line
+AllowShortFunctionsOnASingleLine: None
+# Allow short if statements on a single line
+AllowShortIfStatementsOnASingleLine: false
+# Allow short loops on a single line
+AllowShortLoopsOnASingleLine: false
+# Break after template declaration
+AlwaysBreakTemplateDeclarations: Yes
+# Break before braces
+BreakBeforeBraces: Attach
+# Column limit
+ColumnLimit: 100
+# Continuation indent width
+ContinuationIndentWidth: 4
+# Space after cstyle cast
+SpaceAfterCStyleCast: false
+# Space before assignment operators
+SpaceBeforeAssignmentOperators: true
+# Space before parentheses
+SpaceBeforeParens: ControlStatements
+# Space inside empty parentheses
+SpaceInEmptyParentheses: false
+# Spaces in angular brackets
+SpacesInAngles: false
+# Spaces in cast parentheses
+SpacesInCStyleCastParentheses: false
+# Spaces in container literals
+SpacesInContainerLiterals: false
+# Spaces in parentheses
+SpacesInParentheses: false
+# Spaces in square brackets
+SpacesInSquareBrackets: false
+---
